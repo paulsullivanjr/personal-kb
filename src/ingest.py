@@ -97,7 +97,7 @@ def embed_and_store(chunks: list[dict]) -> None:
 
     batch_size = 50
     for start in range(0, len(chunks), batch_size):
-        batch = chunks[start : start + batch_size]
+        batch = chunks[start:start + batch_size]
         texts = [c["text"] for c in batch]
 
         # Call Ollama to turn each text chunk into a vector
