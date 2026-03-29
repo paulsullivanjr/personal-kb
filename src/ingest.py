@@ -28,10 +28,15 @@ CHUNK_SIZE = 1000                 # Max characters per chunk
 CHUNK_OVERLAP = 200               # Overlap between chunks to preserve context at boundaries
 
 
+def clean_text(text: str) -> str:
+    """Remove surrogate and other invalid UTF-8 characters that PDFs sometimes contain."""
+    return text.encode("utf-8", errors="ignore").decode("utf-8")
+
+
 def read_pdf(path: Path) -> str:
     """Extract all text from a PDF, joining pages with newlines."""
     reader = PdfReader(path)
-    return "\n".join(page.extract_text() or "" for page in reader.pages)
+    return clean_text("\n".join(page.extract_text() or "" for page in reader.pages))
 
 
 def read_markdown(path: Path) -> str:
@@ -91,7 +96,7 @@ def embed_and_store(chunks: list[dict]) -> None:
     # Wipe the old collection so re-ingesting replaces everything
     try:
         client.delete_collection(COLLECTION_NAME)
-    except ValueError:
+    except Exception:
         pass  # Collection didn't exist yet — that's fine
     collection = client.get_or_create_collection(COLLECTION_NAME)
 

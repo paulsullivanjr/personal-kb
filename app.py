@@ -43,11 +43,12 @@ def retrieve(question: str, collection) -> list[str]:
     results = collection.query(
         query_embeddings=response.embeddings,
         n_results=N_RESULTS,
+        include=["documents", "metadatas", "distances"],
     )
-    return results["documents"][0]
+    return results
 
 
-def ask(question: str, context_chunks: list[str]) -> str:
+def ask(question: str, context_chunks: list[dict]) -> str:
     """
     RAG step 2 — AUGMENTATION + GENERATION
     Takes the retrieved chunks and injects them into the prompt as context.
@@ -102,8 +103,18 @@ if question := st.chat_input("Ask your knowledge base a question"):
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
             collection = get_collection()
-            chunks = retrieve(question, collection)    # R — Retrieval
-            answer = ask(question, chunks)             # A+G — Augmentation + Generation
+            results = retrieve(question, collection)          # R — Retrieval
+            chunks = results["documents"][0]
+            metadatas = results["metadatas"][0]
+            distances = results["distances"][0]
+            answer = ask(question, chunks)                    # A+G — Augmentation + Generation
         st.markdown(answer)
+
+        # Show the retrieved chunks so you can see what the retrieval found
+        with st.expander("Retrieved chunks (click to inspect)"):
+            for i, (chunk, meta, dist) in enumerate(zip(chunks, metadatas, distances)):
+                st.markdown(f"**Chunk {i + 1}** — `{meta['source']}` (distance: {dist:.4f})")
+                st.text(chunk[:500])
+                st.divider()
 
     st.session_state.messages.append({"role": "assistant", "content": answer})
